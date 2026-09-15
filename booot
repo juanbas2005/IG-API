@@ -1,0 +1,1736 @@
+
+import random
+import string
+import secrets
+import json
+import os
+
+from playwright.sync_api import sync_playwright
+
+
+# ==========================================================
+# CONFIGURACIÓN
+# ==========================================================
+
+DIA_NACIMIENTO = 15
+MES_NACIMIENTO = 8
+ANIO_NACIMIENTO = 2000
+
+ARCHIVO_CUENTAS = "cuentas.json"
+ARCHIVO_TXT = "cuentas.txt"
+
+
+# ==========================================================
+# SISTEMA DE CUENTAS
+# ==========================================================
+
+def cargar_cuentas():
+
+    if not os.path.exists(ARCHIVO_CUENTAS):
+        return {}
+
+    try:
+
+        with open(
+            ARCHIVO_CUENTAS,
+            "r",
+            encoding="utf-8"
+        ) as archivo:
+
+            datos = json.load(archivo)
+
+            if isinstance(datos, dict):
+                return datos
+
+            return {}
+
+    except (json.JSONDecodeError, OSError):
+
+        return {}
+
+
+def guardar_cuenta(usuario, password):
+
+    cuentas = cargar_cuentas()
+
+    numeros = []
+
+    for nombre in cuentas:
+
+        if nombre.startswith("Cuenta "):
+
+            try:
+
+                numero = int(
+                    nombre.replace("Cuenta ", "")
+                )
+
+                numeros.append(numero)
+
+            except ValueError:
+
+                pass
+
+    if numeros:
+
+        siguiente_numero = max(numeros) + 1
+
+    else:
+
+        siguiente_numero = 1
+
+    nombre_cuenta = (
+        f"Cuenta {siguiente_numero}"
+    )
+
+    cuentas[nombre_cuenta] = {
+
+        "usuario": usuario,
+
+        "contrasena": password
+
+    }
+
+    with open(
+        ARCHIVO_CUENTAS,
+        "w",
+        encoding="utf-8"
+    ) as archivo:
+
+        json.dump(
+            cuentas,
+            archivo,
+            indent=4,
+            ensure_ascii=False
+        )
+
+    print(
+        f"\n✓ {nombre_cuenta} guardada correctamente."
+    )
+
+
+# ==========================================================
+# BORRAR TODAS LAS CUENTAS
+# ==========================================================
+
+def borrar_todas_las_cuentas():
+
+    cuentas = cargar_cuentas()
+
+    if not cuentas:
+
+        print(
+            "\nNo hay cuentas guardadas para borrar."
+        )
+
+        return
+
+    print("\n" + "=" * 60)
+    print("             BORRAR TODAS LAS CUENTAS")
+    print("=" * 60)
+
+    print(
+        f"\nSe encontraron {len(cuentas)} cuenta(s)."
+    )
+
+    confirmacion = input(
+        "\nEscribe BORRAR para confirmar: "
+    ).strip()
+
+    if confirmacion != "BORRAR":
+
+        print(
+            "\n✗ Operación cancelada."
+        )
+
+        return
+
+    try:
+
+        with open(
+            ARCHIVO_CUENTAS,
+            "w",
+            encoding="utf-8"
+        ) as archivo:
+
+            json.dump(
+                {},
+                archivo,
+                indent=4,
+                ensure_ascii=False
+            )
+
+        print(
+            "\n✓ Todas las cuentas fueron eliminadas."
+        )
+
+        # También eliminar el TXT si existe
+        if os.path.exists(ARCHIVO_TXT):
+
+            try:
+
+                os.remove(
+                    ARCHIVO_TXT
+                )
+
+                print(
+                    "✓ También se eliminó el archivo TXT."
+                )
+
+            except OSError as e:
+
+                print(
+                    "\n⚠ No se pudo eliminar el TXT:"
+                )
+
+                print(e)
+
+    except OSError as e:
+
+        print(
+            "\n✗ No se pudieron borrar las cuentas."
+        )
+
+        print(e)
+
+
+# ==========================================================
+# EXPORTAR CUENTAS A TXT
+# ==========================================================
+
+def exportar_cuentas_txt():
+
+    cuentas = cargar_cuentas()
+
+    if not cuentas:
+
+        print(
+            "\nNo hay cuentas guardadas."
+        )
+
+        return
+
+    try:
+
+        with open(
+            ARCHIVO_TXT,
+            "w",
+            encoding="utf-8"
+        ) as archivo:
+
+            archivo.write(
+                "=" * 60 + "\n"
+            )
+
+            archivo.write(
+                "              CUENTAS GUARDADAS\n"
+            )
+
+            archivo.write(
+                "=" * 60 + "\n\n"
+            )
+
+            for nombre, datos in cuentas.items():
+
+                archivo.write(
+                    f"{nombre}\n"
+                )
+
+                archivo.write(
+                    f"Usuario:     "
+                    f"{datos.get('usuario', '')}\n"
+                )
+
+                archivo.write(
+                    f"Contraseña:  "
+                    f"{datos.get('contrasena', '')}\n"
+                )
+
+                archivo.write(
+                    "-" * 60 + "\n"
+                )
+
+        print(
+            f"\n✓ Todas las cuentas fueron "
+            f"exportadas a '{ARCHIVO_TXT}'."
+        )
+
+    except OSError as e:
+
+        print(
+            "\n✗ No se pudo crear el archivo TXT."
+        )
+
+        print(e)
+
+
+# ==========================================================
+# MOSTRAR CUENTAS
+# ==========================================================
+
+def mostrar_cuentas():
+
+    cuentas = cargar_cuentas()
+
+    print("\n" + "=" * 60)
+    print("                 CUENTAS GUARDADAS")
+    print("=" * 60)
+
+    if not cuentas:
+
+        print(
+            "\nNo hay cuentas guardadas."
+        )
+
+        return
+
+    for nombre, datos in cuentas.items():
+
+        print(
+            f"\n{nombre}"
+        )
+
+        print(
+            f"Usuario:     "
+            f"{datos.get('usuario', '')}"
+        )
+
+        print(
+            f"Contraseña:  "
+            f"{datos.get('contrasena', '')}"
+        )
+
+    print(
+        "\n" + "=" * 60
+    )
+
+
+# ==========================================================
+# GENERADORES
+# ==========================================================
+
+def generar_nombre():
+
+    nombres = [
+
+        "Alex",
+        "Daniel",
+        "Carlos",
+        "David",
+        "Miguel",
+        "Luis",
+        "Adrian",
+        "Javier"
+
+    ]
+
+    apellidos = [
+
+        "Garcia",
+        "Rodriguez",
+        "Martinez",
+        "Lopez",
+        "Hernandez",
+        "Gonzalez",
+        "Perez",
+        "Sanchez"
+
+    ]
+
+    return (
+        random.choice(nombres),
+        random.choice(apellidos)
+    )
+
+
+def generar_usuario(nombre, apellido):
+
+    numero = random.randint(
+        1000,
+        99999
+    )
+
+    return (
+        f"{nombre.lower()}."
+        f"{apellido.lower()}"
+        f"{numero}"
+    )
+
+
+def generar_password():
+
+    caracteres = (
+        string.ascii_letters
+        + string.digits
+        + "!@#$%&*"
+    )
+
+    return "".join(
+        secrets.choice(caracteres)
+        for _ in range(16)
+    )
+
+
+# ==========================================================
+# SELECCIONAR UNA OPCIÓN DEL COMBOBOX
+# ==========================================================
+
+def seleccionar_opcion(
+    page,
+    combo,
+    texto_buscar=None,
+    indice=None
+):
+
+    combo.click()
+
+    listbox = page.locator(
+        '[role="listbox"]:visible'
+    ).last
+
+    listbox.wait_for(
+        state="visible",
+        timeout=10000
+    )
+
+    opciones = listbox.locator(
+        '[role="option"]'
+    )
+
+    cantidad = opciones.count()
+
+    print(
+        f"Opciones visibles: {cantidad}"
+    )
+
+    if texto_buscar is not None:
+
+        for i in range(cantidad):
+
+            opcion = opciones.nth(i)
+
+            try:
+
+                texto = (
+                    opcion
+                    .inner_text()
+                    .strip()
+                )
+
+                if texto == str(texto_buscar):
+
+                    opcion.click()
+
+                    return
+
+            except Exception:
+
+                pass
+
+        raise Exception(
+            f"No se encontró la opción: "
+            f"{texto_buscar}"
+        )
+
+    if indice is not None:
+
+        if (
+            indice < 0
+            or indice >= cantidad
+        ):
+
+            raise Exception(
+                f"Índice {indice} fuera de rango."
+            )
+
+        opciones.nth(
+            indice
+        ).click()
+
+        return
+
+    raise Exception(
+        "No se indicó texto ni índice."
+    )
+
+
+# ==========================================================
+# FECHA
+# ==========================================================
+
+def seleccionar_fecha(page):
+
+    print(
+        "\nBuscando controles de fecha..."
+    )
+
+    mes = page.get_by_role(
+        "combobox",
+        name="Select Month"
+    )
+
+    dia = page.get_by_role(
+        "combobox",
+        name="Select Day"
+    )
+
+    anio = page.get_by_role(
+        "combobox",
+        name="Select Year"
+    )
+
+    mes.wait_for(
+        state="visible",
+        timeout=10000
+    )
+
+    dia.wait_for(
+        state="visible",
+        timeout=10000
+    )
+
+    anio.wait_for(
+        state="visible",
+        timeout=10000
+    )
+
+    print(
+        "✓ Controles de fecha encontrados."
+    )
+
+    print(
+        "\nSeleccionando mes..."
+    )
+
+    seleccionar_opcion(
+        page,
+        mes,
+        indice=MES_NACIMIENTO - 1
+    )
+
+    print(
+        f"✓ Mes seleccionado: "
+        f"{MES_NACIMIENTO}"
+    )
+
+    print(
+        "\nSeleccionando día..."
+    )
+
+    seleccionar_opcion(
+        page,
+        dia,
+        indice=DIA_NACIMIENTO - 1
+    )
+
+    print(
+        f"✓ Día seleccionado: "
+        f"{DIA_NACIMIENTO}"
+    )
+
+    print(
+        "\nSeleccionando año..."
+    )
+
+    seleccionar_opcion(
+        page,
+        anio,
+        texto_buscar=str(
+            ANIO_NACIMIENTO
+        )
+    )
+
+    print(
+        f"✓ Año seleccionado: "
+        f"{ANIO_NACIMIENTO}"
+    )
+
+
+# ==========================================================
+# DIAGNÓSTICO DE BOTONES
+# ==========================================================
+
+def diagnosticar_botones(page):
+
+    print(
+        "\nBotones encontrados:"
+    )
+
+    try:
+
+        botones = page.locator(
+            "button, input[type='submit']"
+        )
+
+        cantidad = botones.count()
+
+        print(
+            f"Cantidad: {cantidad}"
+        )
+
+        for i in range(cantidad):
+
+            try:
+
+                elemento = botones.nth(i)
+
+                tag = elemento.evaluate(
+                    "(e) => e.tagName"
+                )
+
+                texto = ""
+
+                try:
+
+                    texto = elemento.inner_text()
+
+                except Exception:
+
+                    pass
+
+                tipo = elemento.get_attribute(
+                    "type"
+                )
+
+                disabled = elemento.is_disabled()
+
+                print(
+                    f"\n[{i}]"
+                )
+
+                print(
+                    f"  Tag: {tag}"
+                )
+
+                print(
+                    f"  Texto: {texto}"
+                )
+
+                print(
+                    f"  Type: {tipo}"
+                )
+
+                print(
+                    f"  Disabled: {disabled}"
+                )
+
+            except Exception:
+
+                pass
+
+    except Exception as e:
+
+        print(
+            "No se pudieron diagnosticar "
+            "los botones:"
+        )
+
+        print(e)
+
+
+# ==========================================================
+# CREAR CUENTA
+# ==========================================================
+
+def crear_cuenta():
+
+    print("=" * 60)
+    print("             ASISTENTE DE REGISTRO")
+    print("=" * 60)
+
+    correo = "razaharez.2020@gmail.com"
+
+    if not correo:
+
+        print(
+            "No introdujiste un correo."
+        )
+
+        return
+
+    nombre, apellido = generar_nombre()
+
+    nombre_completo = (
+        f"{nombre} {apellido}"
+    )
+
+    usuario = generar_usuario(
+        nombre,
+        apellido
+    )
+
+    password = generar_password()
+
+    print("\nDatos generados:")
+    print("-" * 60)
+
+    print(
+        f"Nombre:      {nombre_completo}"
+    )
+
+    print(
+        f"Usuario:     {usuario}"
+    )
+
+    print(
+        f"Contraseña:  {password}"
+    )
+
+    print(
+        f"Nacimiento:  "
+        f"{DIA_NACIMIENTO:02d}/"
+        f"{MES_NACIMIENTO:02d}/"
+        f"{ANIO_NACIMIENTO}"
+    )
+
+    print("-" * 60)
+
+    guardar_cuenta(
+        usuario,
+        password
+    )
+
+    with sync_playwright() as p:
+
+        print(
+            "\nAbriendo Google Chrome..."
+        )
+
+        browser = p.chromium.launch(
+            headless=False,
+            channel="chrome"
+        )
+
+        page = browser.new_page()
+
+        try:
+
+            print(
+                "Abriendo Instagram..."
+            )
+
+            page.goto(
+                "https://www.instagram.com/accounts/emailsignup/",
+                wait_until="domcontentloaded",
+                timeout=30000
+            )
+
+            page.get_by_label(
+                "Mobile number or email"
+            ).wait_for(
+                state="visible",
+                timeout=30000
+            )
+
+            print(
+                "\nFormulario encontrado."
+            )
+
+            # --------------------------------------------------
+            # CORREO
+            # --------------------------------------------------
+
+            correo_input = page.get_by_label(
+                "Mobile number or email"
+            )
+
+            correo_input.fill(
+                correo
+            )
+
+            print(
+                "✓ Correo"
+            )
+
+            # --------------------------------------------------
+            # CONTRASEÑA
+            # --------------------------------------------------
+
+            password_input = page.get_by_label(
+                "Password"
+            )
+
+            password_input.fill(
+                password
+            )
+
+            print(
+                "✓ Contraseña"
+            )
+
+            # --------------------------------------------------
+            # NOMBRE
+            # --------------------------------------------------
+
+            nombre_input = page.get_by_label(
+                "Full name"
+            )
+
+            nombre_input.fill(
+                nombre_completo
+            )
+
+            print(
+                "✓ Nombre"
+            )
+
+            # --------------------------------------------------
+            # USUARIO
+            # --------------------------------------------------
+
+            usuario_input = page.get_by_label(
+                "Username"
+            )
+
+            usuario_input.fill(
+                usuario
+            )
+
+            print(
+                "✓ Usuario"
+            )
+
+            print(
+                "\n✓ Primer formulario completado."
+            )
+
+            # ==================================================
+            # SUBMIT AUTOMÁTICO
+            # ==================================================
+
+            print(
+                "\nBuscando botón de envío..."
+            )
+
+            submit = page.get_by_role(
+               "button", name="Submit"
+            )
+
+            submit.wait_for(
+                state="visible",
+                timeout=15000
+            )
+
+            print(
+                "✓ Botón de envío encontrado."
+            )
+
+            # Esperar a que termine la validación
+            page.wait_for_timeout(
+                2000
+            )
+
+            # --------------------------------------------------
+            # COMPROBAR ESTADO
+            # --------------------------------------------------
+
+            if not submit.is_enabled():
+
+                print(
+                    "⚠ El botón está deshabilitado."
+                )
+
+                print(
+                    "Esperando validación..."
+                )
+
+                page.wait_for_timeout(
+                    3000
+                )
+
+            # --------------------------------------------------
+            # CLICK
+            # --------------------------------------------------
+
+            if not submit.is_enabled():
+
+                print(
+                    "\n✗ El botón continúa "
+                    "deshabilitado."
+                )
+
+                diagnosticar_botones(
+                    page
+                )
+
+                page.screenshot(
+                    path="submit_deshabilitado.png",
+                    full_page=True
+                )
+
+                print(
+                    "\nCaptura guardada:"
+                )
+
+                print(
+                    os.path.abspath(
+                        "submit_deshabilitado.png"
+                    )
+                )
+
+            else:
+
+                print(
+                    "✓ Botón habilitado."
+                )
+
+                print(
+                    "\n✓ Haciendo CLICK automático..."
+                )
+
+                submit.click(
+                    timeout=15000
+                )
+
+                print(
+                    "✓ CLICK EN SUBMIT REALIZADO."
+                )
+
+                page.wait_for_timeout(
+                    5000
+                )
+                print("URL:", page.url)
+                print("Título:", page.title())
+                print("Páginas abiertas:", len(page.context.pages))
+
+                for i, p in enumerate(page.context.pages):
+                    print(
+                        f"[{i}] URL={p.url} | título={p.title()}"
+                    )
+
+            # ==================================================
+            # COMPROBAR PANTALLA DE FECHA
+            # ==================================================
+
+            print(
+                "\nComprobando resultado del Submit..."
+            )
+
+            print(
+                f"URL actual: {page.url}"
+            )
+
+            try:
+
+                page.get_by_role(
+                    "combobox",
+                    name="Select Month"
+                ).wait_for(
+                    state="visible",
+                    timeout=30000
+                )
+
+                print(
+                    "✓ Pantalla de fecha encontrada."
+                )
+
+                # ----------------------------------------------
+                # FECHA
+                # ----------------------------------------------
+
+                try:
+
+                    seleccionar_fecha(
+                        page
+                    )
+
+                    print(
+                        "\n" + "=" * 60
+                    )
+
+                    print(
+                        "✓ FECHA COMPLETADA CORRECTAMENTE"
+                    )
+
+                    print(
+                        "=" * 60
+                    )
+
+                except Exception as e:
+
+                    print(
+                        "\n" + "=" * 60
+                    )
+
+                    print(
+                        "✗ ERROR CON LA FECHA"
+                    )
+
+                    print(
+                        "=" * 60
+                    )
+
+                    print(
+                        type(e).__name__
+                    )
+
+                    print(e)
+
+            except Exception:
+
+                print(
+                    "⚠ No apareció la pantalla "
+                    "de fecha."
+                )
+
+                print(
+                    f"URL actual: {page.url}"
+                )
+
+                try:
+
+                    page.screenshot(
+                        path="resultado_submit.png",
+                        full_page=True
+                    )
+
+                    print(
+                        "\nCaptura guardada:"
+                    )
+
+                    print(
+                        os.path.abspath(
+                            "resultado_submit.png"
+                        )
+                    )
+
+                except Exception:
+
+                    pass
+
+
+            # ==================================================
+            # FINAL
+            # ==================================================
+
+            print(
+                "\nEl navegador permanecerá abierto."
+            )
+
+            print(
+                "Las verificaciones deben hacerse "
+                "manualmente."
+            )
+
+            input(
+                "\nPulsa ENTER para cerrar Chrome..."
+            )
+
+        except Exception as e:
+
+            print(
+                "\n" + "=" * 60
+            )
+
+            print(
+                "✗ ERROR DURANTE EL REGISTRO"
+            )
+
+            print(
+                "=" * 60
+            )
+
+            print(
+                f"\nTipo: {type(e).__name__}"
+            )
+
+            print(
+                f"Mensaje: {e}"
+            )
+
+            try:
+
+                page.screenshot(
+                    path="error_registro.png",
+                    full_page=True
+                )
+
+                print(
+                    "\nCaptura guardada:"
+                )
+
+                print(
+                    os.path.abspath(
+                        "error_registro.png"
+                    )
+                )
+
+            except Exception:
+
+                pass
+
+            input(
+                "\nPulsa ENTER para cerrar Chrome..."
+            )
+
+        finally:
+
+            try:
+
+                browser.close()
+
+            except Exception:
+
+                pass
+
+
+# ==========================================================
+# BUSCAR CAMPO DE USUARIO
+# ==========================================================
+
+def buscar_campo_usuario(page):
+
+    selectores = [
+
+        # Selector que apareció en tu diagnóstico
+        'input[name="email"]',
+
+        'input[name="username"]',
+
+        'input[autocomplete="username"]',
+
+        'input[aria-label*="username" i]',
+
+        'input[placeholder*="username" i]',
+
+        'input[type="text"]'
+
+    ]
+
+    for selector in selectores:
+
+        try:
+
+            locator = page.locator(
+                selector
+            ).first
+
+            locator.wait_for(
+                state="visible",
+                timeout=5000
+            )
+
+            return locator
+
+        except Exception:
+
+            continue
+
+    return None
+
+
+# ==========================================================
+# BUSCAR CAMPO DE CONTRASEÑA
+# ==========================================================
+
+def buscar_campo_password(page):
+
+    selectores = [
+
+        # Selector que apareció en tu diagnóstico
+        'input[name="pass"]',
+
+        'input[name="password"]',
+
+        'input[type="password"]',
+
+        'input[autocomplete="current-password"]',
+
+        'input[aria-label*="password" i]',
+
+        'input[placeholder*="password" i]'
+
+    ]
+
+    for selector in selectores:
+
+        try:
+
+            locator = page.locator(
+                selector
+            ).first
+
+            locator.wait_for(
+                state="visible",
+                timeout=5000
+            )
+
+            return locator
+
+        except Exception:
+
+            continue
+
+    return None
+
+
+# ==========================================================
+# DIAGNÓSTICO DE INPUTS
+# ==========================================================
+
+def diagnosticar_inputs(page):
+
+    print(
+        "\nAnalizando campos disponibles..."
+    )
+
+    try:
+
+        inputs = page.locator(
+            "input"
+        )
+
+        cantidad = inputs.count()
+
+        print(
+            f"Inputs encontrados: {cantidad}"
+        )
+
+        for i in range(cantidad):
+
+            try:
+
+                elemento = inputs.nth(i)
+
+                print(
+                    f"\nInput [{i}]"
+                )
+
+                print(
+                    "  type:",
+                    elemento.get_attribute("type")
+                )
+
+                print(
+                    "  name:",
+                    elemento.get_attribute("name")
+                )
+
+                print(
+                    "  placeholder:",
+                    elemento.get_attribute(
+                        "placeholder"
+                    )
+                )
+
+                print(
+                    "  aria-label:",
+                    elemento.get_attribute(
+                        "aria-label"
+                    )
+                )
+
+            except Exception:
+
+                pass
+
+    except Exception as e:
+
+        print(
+            "No se pudieron analizar "
+            "los inputs:",
+            e
+        )
+
+
+# ==========================================================
+# INICIAR SESIÓN
+# ==========================================================
+
+def iniciar_sesion():
+
+    cuentas = cargar_cuentas()
+
+    if not cuentas:
+
+        print(
+            "\nNo hay cuentas guardadas."
+        )
+
+        return
+
+    print("\n" + "=" * 60)
+    print("                 INICIAR SESIÓN")
+    print("=" * 60)
+
+    lista_cuentas = list(
+        cuentas.items()
+    )
+
+    for i, (nombre, datos) in enumerate(
+        lista_cuentas,
+        start=1
+    ):
+
+        print(
+            f"{i}. {nombre} - "
+            f"{datos.get('usuario', '')}"
+        )
+
+    print("=" * 60)
+
+    opcion = input(
+        "\nSelecciona la cuenta: "
+    ).strip()
+
+    try:
+
+        indice = int(opcion) - 1
+
+    except ValueError:
+
+        print(
+            "\n✗ Debes introducir un número."
+        )
+
+        return
+
+    if (
+        indice < 0
+        or indice >= len(lista_cuentas)
+    ):
+
+        print(
+            "\n✗ Cuenta no válida."
+        )
+
+        return
+
+    nombre_cuenta, datos = (
+        lista_cuentas[indice]
+    )
+
+    usuario = datos.get(
+        "usuario",
+        ""
+    )
+
+    password = datos.get(
+        "contrasena",
+        ""
+    )
+
+    if not usuario:
+
+        print(
+            "\n✗ La cuenta no tiene usuario."
+        )
+
+        return
+
+    if not password:
+
+        print(
+            "\n✗ La cuenta no tiene contraseña."
+        )
+
+        return
+
+    print("\n" + "-" * 60)
+
+    print(
+        f"Cuenta seleccionada: {nombre_cuenta}"
+    )
+
+    print(
+        f"Usuario: {usuario}"
+    )
+
+    print("-" * 60)
+
+    try:
+
+        with sync_playwright() as p:
+
+            print(
+                "\nAbriendo Google Chrome..."
+            )
+
+            browser = p.chromium.launch(
+                headless=False,
+                channel="chrome"
+            )
+
+            context = browser.new_context()
+
+            page = context.new_page()
+
+            try:
+
+                print(
+                    "Abriendo página de inicio "
+                    "de sesión..."
+                )
+
+                page.goto(
+                    "https://www.instagram.com/accounts/login/",
+                    wait_until="domcontentloaded",
+                    timeout=60000
+                )
+
+                print(
+                    "\nURL actual:"
+                )
+
+                print(
+                    page.url
+                )
+
+                page.wait_for_timeout(
+                    5000
+                )
+
+                # ==================================================
+                # DIAGNÓSTICO
+                # ==================================================
+
+                diagnosticar_inputs(
+                    page
+                )
+
+                # ==================================================
+                # USUARIO / CORREO
+                # ==================================================
+
+                print(
+                    "\nBuscando campo de usuario..."
+                )
+
+                usuario_input = (
+                    buscar_campo_usuario(page)
+                )
+
+                if usuario_input is None:
+
+                    print(
+                        "\n✗ No se encontró "
+                        "el campo de usuario."
+                    )
+
+                    page.screenshot(
+                        path="error_login_usuario.png",
+                        full_page=True
+                    )
+
+                    print(
+                        "Se guardó:"
+                    )
+
+                    print(
+                        os.path.abspath(
+                            "error_login_usuario.png"
+                        )
+                    )
+
+                    input(
+                        "\nPulsa ENTER para cerrar Chrome..."
+                    )
+
+                    return
+
+                print(
+                    "✓ Campo de usuario encontrado."
+                )
+
+                usuario_input.fill(
+                    usuario
+                )
+
+                print(
+                    "✓ Usuario/correo rellenado."
+                )
+
+                # ==================================================
+                # CONTRASEÑA
+                # ==================================================
+
+                print(
+                    "\nBuscando campo de contraseña..."
+                )
+
+                password_input = (
+                    buscar_campo_password(page)
+                )
+
+                if password_input is None:
+
+                    print(
+                        "\n✗ No se encontró "
+                        "el campo de contraseña."
+                    )
+
+                    page.screenshot(
+                        path="error_login_password.png",
+                        full_page=True
+                    )
+
+                    print(
+                        "Se guardó:"
+                    )
+
+                    print(
+                        os.path.abspath(
+                            "error_login_password.png"
+                        )
+                    )
+
+                    input(
+                        "\nPulsa ENTER para cerrar Chrome..."
+                    )
+
+                    return
+
+                print(
+                    "✓ Campo de contraseña encontrado."
+                )
+
+                password_input.fill(
+                    password
+                )
+
+                print(
+                    "✓ Contraseña rellenada."
+                )
+
+                # ==================================================
+                # FINAL
+                # ==================================================
+                print(
+                "\nBuscando botón de envío..."
+            )
+
+                submit2 = page.locator(
+               '[aria-label="Log In"]'
+            )
+
+                submit2.wait_for(
+                state="visible",
+                timeout=15000
+            )
+
+                print(
+                "✓ Botón de envío encontrado."
+            )
+
+            # Esperar a que termine la validación
+                page.wait_for_timeout(
+                2000
+            )
+
+            # --------------------------------------------------
+            # COMPROBAR ESTADO
+            # --------------------------------------------------
+
+                if not submit2.is_enabled():
+
+                    print(
+                    "⚠ El botón está deshabilitado."
+                )
+
+                print(
+                    "Esperando validación..."
+                )
+
+                page.wait_for_timeout(
+                    3000
+                )
+
+            # --------------------------------------------------
+            # CLICK
+            # --------------------------------------------------
+
+                if not submit2.is_enabled():
+
+                    print(
+                    "\n✗ El botón continúa "
+                    "deshabilitado."
+                )
+
+                diagnosticar_botones(
+                    page
+                )
+
+                page.screenshot(
+                    path="submit_deshabilitado.png",
+                    full_page=True
+                )
+
+                print(
+                    "\nCaptura guardada:"
+                )
+
+                print(
+                    os.path.abspath(
+                        "submit_deshabilitado.png"
+                    )
+                )
+
+
+                print(
+                    "✓ Botón habilitado."
+                )
+
+                print(
+                    "\n✓ Haciendo CLICK automático..."
+                )
+
+                submit2.click(
+                    timeout=15000
+                )
+
+                print(
+                    "✓ CLICK EN SUBMIT REALIZADO."
+                )
+
+                page.wait_for_timeout(
+                    5000
+                )
+                print("URL:", page.url)
+                print("Título:", page.title())
+                print("Páginas abiertas:", len(page.context.pages))
+
+                for i, p in enumerate(page.context.pages):
+                    print(
+                        f"[{i}] URL={p.url} | título={p.title()}"
+                    )
+                print("\n" + "=" * 60)
+
+                print(
+                    "✓ FORMULARIO DE LOGIN COMPLETADO"
+                )
+
+                print("=" * 60)
+
+                print(
+                    "\nUsuario y contraseña "
+                    "fueron rellenados."
+                )
+
+                print(
+                    "El inicio de sesión queda "
+                    "para continuar manualmente."
+                )
+
+                input(
+                    "\nPulsa ENTER para cerrar Chrome..."
+                )
+
+            finally:
+
+                try:
+
+                    browser.close()
+
+                except Exception:
+
+                    pass
+
+    except Exception as e:
+
+        print(
+            "\n" + "=" * 60
+        )
+
+        print(
+            "✗ ERROR DURANTE EL LOGIN"
+        )
+
+        print(
+            "=" * 60
+        )
+
+        print(
+            f"\nTipo: {type(e).__name__}"
+        )
+
+        print(
+            f"Mensaje: {e}"
+        )
+
+
+# ==========================================================
+# MENÚ PRINCIPAL
+# ==========================================================
+
+def menu():
+
+    while True:
+
+        print("\n")
+
+        print("=" * 60)
+        print("                GESTOR DE CUENTAS")
+        print("=" * 60)
+
+        print(
+            "1. Crear nueva cuenta"
+        )
+
+        print(
+            "2. Iniciar sesión"
+        )
+
+        print(
+            "3. Mostrar cuentas guardadas"
+        )
+
+        print(
+            "4. Exportar cuentas a TXT"
+        )
+
+        print(
+            "5. Borrar todas las cuentas"
+        )
+
+        print(
+            "6. Salir"
+        )
+
+        print("=" * 60)
+
+        opcion = input(
+            "\nSelecciona una opción: "
+        ).strip()
+
+        if opcion == "1":
+
+            crear_cuenta()
+
+        elif opcion == "2":
+
+            iniciar_sesion()
+
+        elif opcion == "3":
+
+            mostrar_cuentas()
+
+        elif opcion == "4":
+
+            exportar_cuentas_txt()
+
+        elif opcion == "5":
+
+            borrar_todas_las_cuentas()
+
+        elif opcion == "6":
+
+            print(
+                "\nPrograma cerrado."
+            )
+
+            break
+
+        else:
+
+            print(
+                "\n✗ Opción no válida."
+            )
+
+
+# ==========================================================
+# EJECUTAR
+# ==========================================================
+
+if __name__ == "__main__":
+
+    menu()
